@@ -51,11 +51,16 @@ public class LocalChatManager implements ChatManager {
     private final Map<String, Component> placeholders = new HashMap<>();
     private final Map<String, String> perPlayerPlaceholders = new HashMap<>();
 
-    private final Cache<UUID, Inventory> inventories = CacheBuilder.newBuilder().expireAfterWrite(3, TimeUnit.MINUTES).build();
-    private final Cache<String, String> lastMessageCache = CacheBuilder.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).build();
+    private final Cache<UUID, Inventory> inventories = CacheBuilder.newBuilder().expireAfterWrite(3, TimeUnit.MINUTES)
+            .build();
+    private final Cache<String, String> lastMessageCache = CacheBuilder.newBuilder()
+            .expireAfterWrite(5, TimeUnit.MINUTES).build();
 
-    @Getter private ChatRenderer.ViewerUnaware chatRenderer;
-    @Getter @Setter private boolean chatMuted = false;
+    @Getter
+    private ChatRenderer.ViewerUnaware chatRenderer;
+    @Getter
+    @Setter
+    private boolean chatMuted = false;
 
     @Override
     public void onEnable() {
@@ -89,12 +94,14 @@ public class LocalChatManager implements ChatManager {
         }
 
         if (plugin.getReplacementConfig().getBoolean("placeholder.enabled")) {
-            ConfigurationSection placeholderSection = plugin.getReplacementConfig().getConfigurationSection("placeholder.placeholders");
+            ConfigurationSection placeholderSection = plugin.getReplacementConfig()
+                    .getConfigurationSection("placeholder.placeholders");
             for (String key : placeholderSection.getKeys(false)) {
                 this.placeholders.put(key, ChatUtils.format(placeholderSection.getString(key)));
             }
 
-            ConfigurationSection perPlayerSection = plugin.getReplacementConfig().getConfigurationSection("placeholder.per-player");
+            ConfigurationSection perPlayerSection = plugin.getReplacementConfig()
+                    .getConfigurationSection("placeholder.per-player");
             for (String key : perPlayerSection.getKeys(false)) {
                 this.perPlayerPlaceholders.put(key, perPlayerSection.getString(key));
             }
@@ -107,7 +114,8 @@ public class LocalChatManager implements ChatManager {
 
     public String getPlayerGroup(Player player) {
         User user = LuckPermsProvider.get().getUserManager().getUser(player.getUniqueId());
-        if (user == null) return "default";
+        if (user == null)
+            return "default";
 
         return user.getPrimaryGroup();
     }
@@ -150,22 +158,19 @@ public class LocalChatManager implements ChatManager {
             messageComponent = handleShulker(player, messageContent, messageComponent);
 
         Component component = ChatUtils.format(
-                PlaceholderAPI.setPlaceholders(player, format.format()),
+                PlaceholderAPI.setPlaceholders(player, PlaceholderAPI.setPlaceholders(player, format.format())),
                 Placeholder.component("message", messageComponent),
-                ChatUtils.papiTag(player)
-        );
+                ChatUtils.papiTag(player));
 
         if (format.hover() != null) {
             List<Component> hoverComponents = new ArrayList<>();
             for (String line : format.hover().message())
                 hoverComponents.add(ChatUtils.format(
                         PlaceholderAPI.setPlaceholders(player, line),
-                        ChatUtils.papiTag(player)
-                ));
+                        ChatUtils.papiTag(player)));
 
             component = component.hoverEvent(
-                    Component.join(JoinConfiguration.newlines(), hoverComponents)
-            );
+                    Component.join(JoinConfiguration.newlines(), hoverComponents));
         }
 
         if (format.click() != null) {
@@ -187,8 +192,7 @@ public class LocalChatManager implements ChatManager {
                         Placeholder.unparsed("player", player.getName()),
                         Placeholder.unparsed("message", ChatUtils.removeColorCodes(message)),
                         Placeholder.unparsed("flag", filter.getClass().getSimpleName()
-                                .replace("Filter", "").toUpperCase())
-                );
+                                .replace("Filter", "").toUpperCase()));
                 plugin.getPlayerManager().broadcast(component, "allaychat.staff");
                 return true;
             }
@@ -204,8 +208,7 @@ public class LocalChatManager implements ChatManager {
             event.setCancelled(true);
             ChatUtils.sendMessage(player, ChatUtils.format(
                     plugin.getMessagesConfig().getString("messages.chat-muted",
-                            "Could not find messages.chat-muted in your messages config.")
-            ));
+                            "Could not find messages.chat-muted in your messages config.")));
             return;
         }
 
@@ -213,12 +216,16 @@ public class LocalChatManager implements ChatManager {
         event.setCancelled(plugin.getChatManager().handleMessage(player, message));
         event.renderer(ChatRenderer.viewerUnaware(plugin.getChatManager().getChatRenderer()));
         event.viewers().removeIf(viewer -> {
-            if (!(viewer instanceof Player target)) return false;
-            if (target.getName().equals(player.getName())) return false;
+            if (!(viewer instanceof Player target))
+                return false;
+            if (target.getName().equals(player.getName()))
+                return false;
             ChatUser user = plugin.getUserManager().getUser(target.getUniqueId());
             // Data not loaded yet
-            if (user == null) return false;
-            if (!user.isChatEnabled()) return true;
+            if (user == null)
+                return false;
+            if (!user.isChatEnabled())
+                return true;
 
             return user.getIgnoredPlayers().contains(player.getName());
         });
@@ -229,62 +236,54 @@ public class LocalChatManager implements ChatManager {
         ChatUser user = plugin.getUserManager().getUser(from.getUniqueId());
         if (user == null) {
             ChatUtils.sendMessage(from, ChatUtils.format(
-                    plugin.getMessagesConfig().getString("messages.data-not-loaded")
-            ));
+                    plugin.getMessagesConfig().getString("messages.data-not-loaded")));
             return false;
         }
 
         Player target = Bukkit.getPlayerExact(to);
         if (target == null) {
             ChatUtils.sendMessage(from, ChatUtils.format(
-                    plugin.getPrivateMessageConfig().getString("messages.not-found")
-            ));
+                    plugin.getPrivateMessageConfig().getString("messages.not-found")));
             return false;
         }
 
         ChatUser targetUser = plugin.getUserManager().getUser(target.getUniqueId());
         if (targetUser == null) {
             ChatUtils.sendMessage(from, ChatUtils.format(
-                    plugin.getMessagesConfig().getString("messages.data-not-loaded")
-            ));
+                    plugin.getMessagesConfig().getString("messages.data-not-loaded")));
             return false;
         }
 
         if (!targetUser.isMsgEnabled() && !from.hasPermission("allaychat.msgtoggle.bypass")) {
             ChatUtils.sendMessage(from, ChatUtils.format(
                     plugin.getPrivateMessageConfig().getString("messages.disabled-other"),
-                    Placeholder.unparsed("player", target.getName())
-            ));
+                    Placeholder.unparsed("player", target.getName())));
             return false;
         }
 
         if (!user.isMsgEnabled() && !from.hasPermission("allaychat.msgtoggle.bypass")) {
             ChatUtils.sendMessage(from, ChatUtils.format(
-                    plugin.getPrivateMessageConfig().getString("messages.disabled")
-            ));
+                    plugin.getPrivateMessageConfig().getString("messages.disabled")));
             return false;
         }
 
         if (from.getName().equalsIgnoreCase(target.getName())) {
             ChatUtils.sendMessage(from, ChatUtils.format(
-                    plugin.getPrivateMessageConfig().getString("messages.self")
-            ));
+                    plugin.getPrivateMessageConfig().getString("messages.self")));
             return false;
         }
 
         if (targetUser.getIgnoredPlayers().contains(from.getName())) {
             ChatUtils.sendMessage(from, ChatUtils.format(
                     plugin.getMessagesConfig().getString("messages.ignoring-you"),
-                    Placeholder.unparsed("player", target.getName())
-            ));
+                    Placeholder.unparsed("player", target.getName())));
             return false;
         }
 
         if (user.getIgnoredPlayers().contains(target.getName())) {
             ChatUtils.sendMessage(from, ChatUtils.format(
                     plugin.getMessagesConfig().getString("messages.ignoring"),
-                    Placeholder.unparsed("player", target.getName())
-            ));
+                    Placeholder.unparsed("player", target.getName())));
             return false;
         }
 
@@ -297,20 +296,17 @@ public class LocalChatManager implements ChatManager {
                 plugin.getPrivateMessageConfig().getString("messages.spy"),
                 Placeholder.unparsed("from", from.getName()),
                 Placeholder.unparsed("to", to),
-                Placeholder.unparsed("message", message)
-        );
+                Placeholder.unparsed("message", message));
 
         Component msgTarget = ChatUtils.format(
                 plugin.getPrivateMessageConfig().getString("messages.format-target"),
                 Placeholder.unparsed("player", from.getName()),
-                Placeholder.unparsed("message", message)
-        );
+                Placeholder.unparsed("message", message));
 
         Component msgSender = ChatUtils.format(
                 plugin.getPrivateMessageConfig().getString("messages.format-self"),
                 Placeholder.unparsed("player", target.getName()),
-                Placeholder.unparsed("message", message)
-        );
+                Placeholder.unparsed("message", message));
 
         ChatUtils.sendMessage(target, msgTarget);
         ChatUtils.sendMessage(from, msgSender);
@@ -320,7 +316,8 @@ public class LocalChatManager implements ChatManager {
 
         plugin.getUserManager().getAllUsers().stream().filter(ChatUser::isSpyEnabled).forEach(spyUser -> {
             Player player = Bukkit.getPlayer(spyUser.getUniqueId());
-            if (player == null) return;
+            if (player == null)
+                return;
 
             ChatUtils.sendMessage(player, spyComponent);
         });
@@ -334,8 +331,7 @@ public class LocalChatManager implements ChatManager {
                 plugin.getStaffChatConfig().getString("format"),
                 ChatUtils.papiTag(from),
                 Placeholder.unparsed("message", message),
-                Placeholder.unparsed("player", from.getName())
-        );
+                Placeholder.unparsed("player", from.getName()));
 
         plugin.getPlayerManager().broadcast(component, "allaychat.staff");
     }
@@ -375,9 +371,11 @@ public class LocalChatManager implements ChatManager {
             for (String playerName : plugin.getPlayerManager().getAllPlayers()) {
                 if (messageContent.contains(playerName)) {
                     Player targetPlayer = Bukkit.getPlayerExact(playerName);
-                    if (targetPlayer == null) continue; // Player is not online
+                    if (targetPlayer == null)
+                        continue; // Player is not online
                     ChatUser user = plugin.getUserManager().getUser(targetPlayer.getUniqueId());
-                    if (user == null) continue; // User data not loaded or mentions disabled
+                    if (user == null)
+                        continue; // User data not loaded or mentions disabled
                     boolean allow = user.isChatEnabled()
                             && (user.isMentionsEnabled() || player.hasPermission("allaychat.mention.bypass"))
                             && !user.getIgnoredPlayers().contains(player.getName());
@@ -393,29 +391,31 @@ public class LocalChatManager implements ChatManager {
                         String subtitleText = replacementConfig.getString("mention.title.subtitle");
                         Title title = Title.title(
                                 ChatUtils.format(titleText, Placeholder.unparsed("player", player.getName())),
-                                ChatUtils.format(subtitleText, Placeholder.unparsed("player", player.getName()))
-                        );
+                                ChatUtils.format(subtitleText, Placeholder.unparsed("player", player.getName())));
                         targetPlayer.showTitle(title);
                     }
 
                     String actionBar = replacementConfig.getString("mention.actionbar");
                     if (actionBar != null && !actionBar.isEmpty() && allow) {
-                        Component actionBarComponent = ChatUtils.format(actionBar, Placeholder.unparsed("player", player.getName()));
+                        Component actionBarComponent = ChatUtils.format(actionBar,
+                                Placeholder.unparsed("player", player.getName()));
                         targetPlayer.sendActionBar(actionBarComponent);
                     }
 
                     String mentionMessage = replacementConfig.getString("mention.message");
                     if (mentionMessage != null && !mentionMessage.isEmpty() && allow) {
-                        Component mentionMessageComponent = ChatUtils.format(mentionMessage, Placeholder.unparsed("player", player.getName()));
+                        Component mentionMessageComponent = ChatUtils.format(mentionMessage,
+                                Placeholder.unparsed("player", player.getName()));
                         ChatUtils.sendMessage(targetPlayer, mentionMessageComponent);
                     }
 
-                    // Replace all occurrences of the player's name with the mention format no matter the case
+                    // Replace all occurrences of the player's name with the mention format no
+                    // matter the case
                     messageComponent = messageComponent.replaceText(TextReplacementConfig.builder()
                             .matchLiteral(playerName)
-                            .replacement(ChatUtils.format(replacementConfig.getString("mention.text"), Placeholder.unparsed("player", playerName)))
-                            .build()
-                    );
+                            .replacement(ChatUtils.format(replacementConfig.getString("mention.text"),
+                                    Placeholder.unparsed("player", playerName)))
+                            .build());
                 }
             }
         }
@@ -428,16 +428,14 @@ public class LocalChatManager implements ChatManager {
             messageComponent = messageComponent.replaceText(TextReplacementConfig.builder()
                     .matchLiteral(entry.getKey())
                     .replacement(entry.getValue())
-                    .build()
-            );
+                    .build());
         }
 
         for (Map.Entry<String, String> entry : this.perPlayerPlaceholders.entrySet()) {
             messageComponent = messageComponent.replaceText(TextReplacementConfig.builder()
                     .matchLiteral(entry.getKey())
                     .replacement(ChatUtils.format(entry.getValue(), ChatUtils.papiTag(player)))
-                    .build()
-            );
+                    .build());
         }
 
         return messageComponent;
@@ -445,25 +443,27 @@ public class LocalChatManager implements ChatManager {
 
     private Component handleItem(Player player, String messageContent, Component messageComponent) {
         String syntax = plugin.getReplacementConfig().getString("item.syntax", "[item]");
-        if (!messageContent.contains(syntax)) return messageComponent;
+        if (!messageContent.contains(syntax))
+            return messageComponent;
 
         ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || item.isEmpty()) return messageComponent;
+        if (item == null || item.isEmpty())
+            return messageComponent;
 
         ItemMeta meta = item.getItemMeta();
-        if (meta == null) return messageComponent;
+        if (meta == null)
+            return messageComponent;
 
         Component component = ChatUtils.format(
                 plugin.getReplacementConfig().getString("item.text"),
                 Placeholder.unparsed("amount", item.getAmount() + ""),
-                Placeholder.component("item", (meta.hasDisplayName() ? meta.displayName() : Component.translatable(item)).hoverEvent(item))
-        );
+                Placeholder.component("item",
+                        (meta.hasDisplayName() ? meta.displayName() : Component.translatable(item)).hoverEvent(item)));
 
         messageComponent = messageComponent.replaceText(TextReplacementConfig.builder()
                 .matchLiteral(syntax)
                 .replacement(component.hoverEvent(item))
-                .build()
-        );
+                .build());
 
         return messageComponent;
     }
@@ -471,22 +471,23 @@ public class LocalChatManager implements ChatManager {
     private Component handleInventory(Player player, String messageContent, Component messageComponent) {
         String syntax = plugin.getReplacementConfig().getString("inventory.syntax", "[inventory]");
         if (messageContent.contains(syntax)) {
-            Component component = ChatUtils.format(plugin.getReplacementConfig().getString("inventory.text"), Placeholder.unparsed("player", player.getName()));
+            Component component = ChatUtils.format(plugin.getReplacementConfig().getString("inventory.text"),
+                    Placeholder.unparsed("player", player.getName()));
 
             UUID uuid = UUID.randomUUID();
-            plugin.getChatManager().setInventory(uuid, player.getName(), player.getInventory(), InventoryType.INVENTORY);
+            plugin.getChatManager().setInventory(uuid, player.getName(), player.getInventory(),
+                    InventoryType.INVENTORY);
 
-            component = component.clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/allay inventory %s".formatted(uuid)));
+            component = component.clickEvent(
+                    ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/allay inventory %s".formatted(uuid)));
             component = component.hoverEvent(ChatUtils.format(
                     plugin.getReplacementConfig().getString("inventory.hover"),
-                    Placeholder.unparsed("player", player.getName())
-            ));
+                    Placeholder.unparsed("player", player.getName())));
 
             messageComponent = messageComponent.replaceText(TextReplacementConfig.builder()
                     .matchLiteral(syntax)
                     .replacement(component)
-                    .build()
-            );
+                    .build());
         }
 
         return messageComponent;
@@ -494,55 +495,59 @@ public class LocalChatManager implements ChatManager {
 
     private Component handleEnderChest(Player player, String messageContent, Component messageComponent) {
         String syntax = plugin.getReplacementConfig().getString("enderchest.syntax", "[enderchest]");
-        if (!messageContent.contains(syntax)) return messageComponent;
+        if (!messageContent.contains(syntax))
+            return messageComponent;
 
-        Component component = ChatUtils.format(plugin.getReplacementConfig().getString("enderchest.text"), Placeholder.unparsed("player", player.getName()));
+        Component component = ChatUtils.format(plugin.getReplacementConfig().getString("enderchest.text"),
+                Placeholder.unparsed("player", player.getName()));
 
         UUID uuid = UUID.randomUUID();
         plugin.getChatManager().setInventory(uuid, player.getName(), player.getEnderChest(), InventoryType.ENDER_CHEST);
 
-        component = component.clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/allay inventory %s".formatted(uuid)));
+        component = component.clickEvent(
+                ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/allay inventory %s".formatted(uuid)));
         component = component.hoverEvent(ChatUtils.format(
                 plugin.getReplacementConfig().getString("enderchest.hover"),
-                Placeholder.unparsed("player", player.getName())
-        ));
+                Placeholder.unparsed("player", player.getName())));
 
         messageComponent = messageComponent.replaceText(TextReplacementConfig.builder()
                 .matchLiteral(syntax)
                 .replacement(component)
-                .build()
-        );
+                .build());
 
         return messageComponent;
     }
 
     private Component handleShulker(Player player, String messageContent, Component messageComponent) {
         String syntax = plugin.getReplacementConfig().getString("shulker.syntax", "[shulker]");
-        if (!messageContent.contains(syntax)) return messageComponent;
+        if (!messageContent.contains(syntax))
+            return messageComponent;
 
         ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || item.isEmpty()) return messageComponent;
+        if (item == null || item.isEmpty())
+            return messageComponent;
 
         if (Tag.SHULKER_BOXES.isTagged(item.getType())) {
             BlockStateMeta meta = (BlockStateMeta) item.getItemMeta();
             ShulkerBox shulkerBox = (ShulkerBox) meta.getBlockState();
 
             UUID uuid = UUID.randomUUID();
-            plugin.getChatManager().setInventory(uuid, player.getName(), shulkerBox.getInventory(), InventoryType.SHULKER);
+            plugin.getChatManager().setInventory(uuid, player.getName(), shulkerBox.getInventory(),
+                    InventoryType.SHULKER);
 
-            Component component = ChatUtils.format(plugin.getReplacementConfig().getString("shulker.text"), Placeholder.unparsed("player", player.getName()));
+            Component component = ChatUtils.format(plugin.getReplacementConfig().getString("shulker.text"),
+                    Placeholder.unparsed("player", player.getName()));
 
-            component = component.clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/allay inventory %s".formatted(uuid)));
+            component = component.clickEvent(
+                    ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/allay inventory %s".formatted(uuid)));
             component = component.hoverEvent(ChatUtils.format(
                     plugin.getReplacementConfig().getString("enderchest.hover"),
-                    Placeholder.unparsed("player", player.getName())
-            ));
+                    Placeholder.unparsed("player", player.getName())));
 
             messageComponent = messageComponent.replaceText(TextReplacementConfig.builder()
                     .matchLiteral(syntax)
                     .replacement(component)
-                    .build()
-            );
+                    .build());
         }
 
         return messageComponent;
