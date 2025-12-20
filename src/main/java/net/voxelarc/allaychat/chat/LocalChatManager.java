@@ -368,7 +368,10 @@ public class LocalChatManager implements ChatManager {
     public Component handleMentions(Player player, String messageContent, Component messageComponent) {
         YamlConfig replacementConfig = plugin.getReplacementConfig();
         if (replacementConfig.getBoolean("mention.enabled")) {
-            for (String playerName : plugin.getPlayerManager().getAllPlayers()) {
+            List<String> sortedPlayers = new ArrayList<>(plugin.getPlayerManager().getAllPlayers());
+            sortedPlayers.sort(Comparator.comparingInt(String::length).reversed());
+
+            for (String playerName : sortedPlayers) {
                 if (messageContent.contains(playerName)) {
                     Player targetPlayer = Bukkit.getPlayerExact(playerName);
                     if (targetPlayer == null)
